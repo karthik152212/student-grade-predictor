@@ -1,0 +1,131 @@
+# Agent Build & Deploy Loop — Student Grade Predictor
+
+You are an autonomous coding agent. Build, test, and deploy the "AI-Powered Student
+Grade Predictor" web app end-to-end, iterating until every success criterion passes.
+Follow the specs below exactly. Do not skip phases. Do not ask the human for
+clarification unless you hit one of the explicit STOP conditions listed in Phase 5.
+
+Full specs are attached/provided as `PROJECT_SPEC.md` and `UI_DESIGN.md`. Read both
+fully before writing any code.
+
+## Operating Principle: Self-Correction Loop
+For every phase below:
+1. Write/modify the code for that phase.
+2. Run it (or the relevant test/command).
+3. If it errors or output doesn't match the expected result: read the error, fix the
+   root cause (not a workaround), and re-run.
+4. Repeat step 3 until it passes cleanly.
+5. Only then move to the next phase.
+Log a short note after each phase: what you did, what broke, how you fixed it.
+
+---
+
+## Phase 1 — Project Scaffold
+- Create the project directory structure exactly as defined in `PROJECT_SPEC.md` §7.
+- Initialize a git repo, create `.gitignore` (exclude `venv/`, `__pycache__/`, `*.pyc`,
+  `model/model.pkl` is fine to include or exclude — your call, note which).
+- Create `requirements.txt` with pinned versions: flask, scikit-learn, pandas, numpy,
+  joblib, gunicorn.
+- Set up a virtual environment and install requirements.
+- **Pass condition:** `pip install -r requirements.txt` completes with no errors.
+
+## Phase 2 — Data Generation
+- Write `model/generate_data.py` per `PROJECT_SPEC.md` §3.
+- Run it, confirm `model/dataset.csv` is created with ~500 rows and sane value ranges
+  (spot-check min/max of each column).
+- **Pass condition:** script runs with no errors, CSV has correct columns and row count.
+
+## Phase 3 — Model Training
+- Write `model/train_model.py` per `PROJECT_SPEC.md` §4.
+- Run it. Check printed/saved R² and MAE.
+- If R² < 0.7, adjust the synthetic data generation (Phase 2) to have a stronger/cleaner
+  signal, regenerate, and retrain. Loop until R² ≥ 0.7.
+- **Pass condition:** `model/model.pkl` and `model/metrics.json` exist, R² ≥ 0.7.
+
+## Phase 4 — Backend (Flask)
+- Write `app.py` per `PROJECT_SPEC.md` §5. Load `model.pkl` once at startup.
+- Write basic input validation (reject non-numeric or out-of-range values with a 400
+  and clear error message).
+- Test locally:
+  - `GET /api/health` → 200, `{"status": "ok"}`
+  - `POST /api/predict` with valid input → 200, correct JSON shape, sane value
+  - `POST /api/predict` with boundary values (0s, max values) → no crash, sane output
+  - `POST /api/predict` with invalid input (e.g. string instead of number) → 400, not 500
+- Fix any bugs found (missing imports, shape mismatches, type errors) and re-test.
+- **Pass condition:** all 4 test cases above pass.
+
+## Phase 5 — Frontend
+- Read `UI_DESIGN.md` fully before building this phase.
+- Build `templates/index.html`, `static/style.css`, `static/script.js` per the UI spec.
+- Use Chart.js via CDN for the trend chart.
+- Serve and manually verify (headless browser check or curl the HTML at minimum;
+  if a browser tool is available, actually load the page and click through):
+  - Page loads with no console errors
+  - Sliders update displayed values live
+  - Predict button triggers a fetch to `/api/predict` and updates the result panel
+  - Chart renders and updates with the new prediction point
+  - Layout doesn't break at a narrow (mobile) viewport width
+- Fix any JS/CSS bugs found and re-verify.
+- **Pass condition:** all bullet points above verified.
+
+## Phase 6 — Local Integration Test
+- Run the full app via `gunicorn app:app` (not just Flask dev server) on a local port.
+- Re-run all Phase 4 and Phase 5 checks against the gunicorn-served instance.
+- **Pass condition:** identical behavior to dev server, no errors in gunicorn logs.
+
+## Phase 7 — Version Control
+- Commit all code with clear commit messages (scaffold, data, model, backend, frontend
+  as separate logical commits if practical).
+- Push to a GitHub repository (create one if you have GitHub access; otherwise prepare
+  the repo locally and STOP per Phase 9 condition 1 below to get repo details from the
+  human).
+- **Pass condition:** code is pushed and the remote repo builds/runs from a fresh clone.
+
+## Phase 8 — AWS EC2 Deployment
+First, detect your environment:
+```
+aws --version
+aws sts get-caller-identity
+```
+**Branch A — AWS CLI + credentials available:**
+- Provision: launch a t2.micro Ubuntu 22.04 EC2 instance, create/reuse a security group
+  allowing inbound TCP 22 and 80, create/reuse a key pair, note the public IP.
+- SSH in, install Python3, pip, venv, nginx, git.
+- Clone the repo (or scp the code) onto the instance.
+- Set up the venv, install requirements, regenerate data + retrain model on the
+  instance (or copy the trained `model.pkl` — your call, note which and why).
+- Configure and enable the systemd service (`deploy/student-predictor.service`) to run
+  gunicorn on 127.0.0.1:8000, `WantedBy=multi-user.target` so it survives reboot.
+- Configure Nginx (`deploy/nginx.conf`) to reverse-proxy port 80 → 127.0.0.1:8000,
+  enable the site, reload nginx.
+- Verify: `curl http://<public-ip>/api/health` returns 200 from OUTSIDE the instance
+  (i.e. actually hit the public IP, not localhost).
+- If it fails, debug systematically: check `systemctl status`, `journalctl -u
+  student-predictor`, nginx error logs, security group rules. Fix and re-verify.
+- **Pass condition:** public IP serves the full working app on port 80.
+
+**Branch B — No AWS CLI/credentials available:**
+- STOP and output clear manual instructions for the human to:
+  1. Launch a t2.micro Ubuntu 22.04 EC2 instance
+  2. Open inbound ports 22 and 80 in the security group
+  3. Provide back: the public IP and the `.pem` key file (or confirm SSH access is
+     otherwise available to you)
+- Once given SSH access, resume at "SSH in, install Python3..." above and complete
+  Branch A's remaining steps.
+
+## Phase 9 — Explicit STOP Conditions
+Only pause and ask the human when:
+1. You need GitHub repo creation permission/credentials you don't have.
+2. You need AWS account access/credentials you don't have (Branch B above).
+3. A test fails 3+ times after genuine root-cause fix attempts (report what you tried).
+4. A requirement in the specs is ambiguous in a way that changes the architecture
+   (not just a styling/wording detail — use your judgment for those and note the
+   assumption you made).
+Otherwise: keep looping through phases autonomously until Phase 8 passes.
+
+## Final Deliverable Checklist
+- [ ] All Phase 1–8 pass conditions met
+- [ ] GitHub repo URL
+- [ ] Live public URL (`http://<ec2-public-ip>/`)
+- [ ] `README.md` in the repo documenting setup + deployment steps taken
+- [ ] Final summary of R²/MAE achieved and any deviations from spec, with reasons

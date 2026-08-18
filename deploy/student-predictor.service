@@ -1,0 +1,22 @@
+# systemd unit for the Student Grade Predictor (Ubuntu 22.04 - t2.micro)
+# Install: sudo cp deploy/student-predictor.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now student-predictor
+# The app is trained at build time; gunicorn serves it from venv.
+
+[Unit]
+Description=Gunicorn instance serving the Student Grade Predictor Flask app
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/student-grade-predictor
+Environment="PATH=/home/ubuntu/student-grade-predictor/venv/bin"
+ExecStart=/home/ubuntu/student-grade-predictor/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 app:app
+Restart=always
+RestartSec=5
+
+# Bring up the app with the network.
+[Install]
+WantedBy=multi-user.target

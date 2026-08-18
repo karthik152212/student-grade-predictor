@@ -1,0 +1,67 @@
+# UI Design Spec: Student Grade Predictor
+
+## 1. Layout
+Single-page app, centered card-based layout, max-width ~960px, generous padding.
+Two-column on desktop (≥768px), stacked single column on mobile.
+
+```
+┌───────────────────────────────────────────┐
+│  Header: "AI Student Grade Predictor"      │
+│  Subtext: short one-liner description      │
+├───────────────────┬─────────────────────────┤
+│  INPUT PANEL       │   RESULT PANEL          │
+│  - Study Hours     │   - Predicted Marks      │
+│    slider + value  │     (large number)       │
+│  - Attendance %    │   - Grade badge (A-F)    │
+│    slider + value  │   - Short interpretive    │
+│  - Previous Score  │     text                  │
+│    slider + value  │                          │
+│  [ Predict Button ]│                          │
+├───────────────────┴─────────────────────────┤
+│  CHART: training trend + current prediction   │
+│  point highlighted                            │
+└───────────────────────────────────────────┘
+```
+
+## 2. Visual Style
+- **Tone:** clean, modern, "data product" feel — not generic Bootstrap defaults
+- **Color palette:**
+  - Background: soft off-white/light gray (`#F7F8FA`)
+  - Primary accent: deep indigo/blue (`#4F46E5`) for buttons, active states, chart line
+  - Card background: white with subtle shadow (`box-shadow: 0 2px 12px rgba(0,0,0,0.06)`)
+  - Grade badge colors: A/B = green tones, C = amber, D/F = red tones
+- **Typography:** system font stack or a single clean Google Font (e.g. Inter), consistent
+  scale — large bold number for the prediction, medium weight for labels
+- **Corners/spacing:** rounded corners (8–12px), consistent 16–24px spacing rhythm
+- **Sliders:** styled (not raw browser default), value shown next to label, updates live
+  as dragged (no need to click Predict to see the number change, only to trigger the
+  actual prediction call)
+
+## 3. Components
+1. **Header** — title + one-line subtext
+2. **Input Panel (card)**
+   - 3x labeled range sliders with live numeric readout
+   - Predict button (primary, full-width on mobile)
+3. **Result Panel (card)**
+   - Large predicted-marks number (animates/updates on new prediction)
+   - Grade badge (colored pill)
+   - One-line contextual message (e.g. "Great trajectory" / "Room to improve")
+   - Empty/placeholder state before first prediction ("Adjust the sliders and hit Predict")
+4. **Chart (card, full width)**
+   - Chart.js scatter of training data (light gray points) + regression trend line
+   - Current prediction plotted as a distinct highlighted point (accent color, larger)
+5. **Footer** — small text: "Built with Flask + scikit-learn, deployed on AWS EC2"
+
+## 4. Interaction Behavior
+- Slider drag → live-updates the displayed number only (no API call)
+- Predict click → calls `/api/predict`, shows a brief loading state on the button/result
+  panel, then updates result panel + chart point
+- No page reloads; all via `fetch()`
+- Basic error state: if the API call fails, show a small inline error message in the
+  result panel (don't break the layout)
+
+## 5. Accessibility / Responsiveness
+- Sufficient color contrast for text on badges
+- Sliders have associated `<label>` elements
+- Layout reflows to single column below 768px width
+- Chart is horizontally scrollable or resizes on small screens rather than overflowing
