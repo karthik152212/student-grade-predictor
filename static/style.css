@@ -43,12 +43,18 @@ body {
   flex-direction: column;
 }
 
+/* ---------- Container ---------- */
+.container {
+  width: min(calc(100% - 32px), 760px);
+  margin-inline: auto;
+  padding: 0 16px;
+}
+
 /* ---------- Header ---------- */
 .site-header {
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 40px 24px 8px;
+  width: min(calc(100% - 32px), 760px);
+  margin-inline: auto;
+  padding: 40px 0 8px;
 }
 
 .site-header h1 {
@@ -65,22 +71,13 @@ body {
   font-size: 1rem;
 }
 
-/* ---------- Layout ---------- */
-.layout {
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
+/* ---------- Card ---------- */
 .card {
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 24px;
+  width: 100%;
 }
 
 .panel-title {
@@ -90,6 +87,15 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
+}
+
+/* ---------- Home layout ---------- */
+.home-layout {
+  width: min(calc(100% - 32px), 760px);
+  margin-inline: auto;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ---------- Sliders ---------- */
@@ -131,7 +137,7 @@ body {
   background: #ffffff;
 }
 
-/* Keep the badge look: hide the native number-input spinners. */
+/* Hide native number-input spinners */
 .slider-head .value-input::-webkit-outer-spin-button,
 .slider-head .value-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -142,7 +148,7 @@ body {
   appearance: textfield;
 }
 
-/* Styled range input (cross-browser) */
+/* Styled range input */
 .slider {
   -webkit-appearance: none;
   appearance: none;
@@ -220,15 +226,65 @@ body {
   cursor: not-allowed;
 }
 
-/* ---------- Result panel ---------- */
-.placeholder-text {
-  margin: 8px 0;
-  color: var(--text-muted);
+/* ---------- Error ---------- */
+.error-message {
+  margin: 12px 0 0;
+  color: var(--red);
+  font-weight: 600;
+  background: var(--red-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+/* ============================================================
+   RESULT PAGE
+   ============================================================ */
+
+/* ---------- Results header ---------- */
+.results-header {
+  position: relative;
+  padding-top: 24px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.results-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Result layout ---------- */
+.result-layout {
+  width: min(calc(100% - 32px), 760px);
+  margin-inline: auto;
+  padding: 24px 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- Prediction hero ---------- */
+.prediction-hero {
+  text-align: center;
 }
 
 .marks {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -246,10 +302,6 @@ body {
   font-weight: 600;
 }
 
-.badge-row {
-  margin: 14px 0 10px;
-}
-
 .grade-badge {
   display: inline-block;
   padding: 6px 18px;
@@ -257,8 +309,28 @@ body {
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: 0.04em;
+  margin-top: 12px;
 }
 
+/* Grade colors — result.js sets class "grade-a" / "grade-b" etc. */
+.grade-badge.grade-a,
+.grade-badge.grade-b {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.grade-badge.grade-c {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.grade-badge.grade-d,
+.grade-badge.grade-f {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+/* Backward-compat: old "badge-" prefix used by some code paths */
 .grade-badge.badge-A,
 .grade-badge.badge-B {
   background: var(--green-soft);
@@ -276,35 +348,127 @@ body {
   color: var(--red);
 }
 
-.grade-badge.badge-empty {
-  background: #f3f4f6;
+.grade-subtext {
+  margin: 8px 0 0;
   color: var(--text-muted);
+  font-size: 1rem;
 }
 
-.grade-message {
+/* ---------- Input summary ---------- */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin: 0;
-  color: var(--text-muted);
 }
 
-.error-message {
-  margin: 12px 0 0;
-  color: var(--red);
+.summary-item {
+  text-align: center;
+}
+
+.summary-item dt {
   font-weight: 600;
-  background: var(--red-soft);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.summary-item dd {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---------- Contributions ---------- */
+.contrib-intro {
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.contrib-note {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+.contrib-list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+}
+
+.contrib-list li {
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.contrib-sum {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ---------- What-if ---------- */
+.whatif-intro {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.whatif-list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+}
+
+.whatif-list li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.whatif-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ---------- Disclaimer ---------- */
+.disclaimer {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 12px 0 0;
+  font-style: italic;
 }
 
 /* ---------- Chart ---------- */
-.chart-card {
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto 24px;
+.chart-section {
+  overflow: hidden;
+}
+
+.chart-note {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
 }
 
 .chart-wrap {
   position: relative;
   height: 320px;
+}
+
+/* ---------- Model flow ---------- */
+.flow-step {
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.equation {
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 /* ---------- Footer ---------- */
@@ -316,20 +480,47 @@ body {
   font-size: 0.85rem;
 }
 
-/* ---------- Responsive (mobile) ---------- */
-@media (max-width: 767px) {
-  .layout {
-    grid-template-columns: 1fr;
-    padding: 16px;
-    gap: 16px;
-  }
+/* ---------- Visually hidden (accessibility) ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 600px) {
   .site-header {
-    padding: 28px 16px 0;
+    padding-top: 28px;
   }
 
   .site-header h1 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .card {
+    padding: 20px 16px;
+  }
+
+  #predicted-marks {
+    font-size: 2.8rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .chart-wrap {
@@ -338,5 +529,16 @@ body {
 
   .predict-btn {
     font-size: 1.05rem;
+    padding: 12px 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .site-header {
+    padding-top: 48px;
+  }
+
+  .card {
+    padding: 28px 32px;
   }
 }

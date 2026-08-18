@@ -6,9 +6,9 @@
      - coefficients / intercept  : injected server-side by Flask in #model-data
 
    Everything here is derived from those two real sources. Contributions
-   and what-if figures apply the model's published linear coefficients to the
-   user's actual inputs; the trained model stays the single source of truth
-   and the prediction itself is never recomputed in the frontend.
+   and what-if figures apply the model's published linear coefficients to
+   the user's actual inputs; the trained model stays the single source of
+   truth and the prediction itself is never recomputed in the frontend.
    ============================================================ */
 
 (function () {
@@ -68,14 +68,14 @@
     }
   })();
 
-  if (!state || typeof state.predicted_marks !== "number") {
+  if (!state || !state.prediction || typeof state.prediction.predicted_marks !== "number") {
     window.location.replace("/");
     return;
   }
 
   var inputs = state.inputs;
-  var currentMark = state.predicted_marks; /* server prediction (clamped, rounded) */
-  var currentGrade = state.grade;
+  var currentMark = state.prediction.predicted_marks; /* server prediction (clamped, rounded) */
+  var currentGrade = state.prediction.grade;
 
   /* ---------- the model's linear formula, using injected coefficients ---------- */
   function predictFromModel(vals) {
@@ -103,34 +103,59 @@
     return list;
   }
 
-  /* ---------- what-if scenarios (one input bumped, others held constant) ---------- */
-  var WHATS = [
-    { key: "study_hours", delta: 0.5, max: 12, label: "Add 0.5 study hours" },
-    { key: "attendance_rate", delta: 5, max: 100, label: "Raise attendance by 5%" },
-    { key: "previous_score", delta: 5, max: 100, label: "Raise previous score by 5 points" }
-  ];
-
+  /* ---------- what-if scenarios (personalized) ---------- */
   function whatIfScenarios() {
     var out = [];
-    WHATS.forEach(function (w) {
-      var scenario = Object.assign({}, inputs);
-      var bumped = Number(inputs[w.key]) + w.delta;
-      bumped = clamp(bumped, FEATURE_MIN[w.key], w.max);
-      scenario[w.key] = bumped;
-      var predicted = round2(clamp(predictFromModel(scenario), 0, 100));
-      out.push({
-        label: w.label,
-        feature: w.key,
-        newValue: bumped,
-        predicted: predicted,
-        improvement: round2(predicted - currentMark)
+
+    // For each feature, compute a realistic "improved" value:
+    // move 25% of the remaining range toward max, rounded to a nice step.
+    FEATURES.forEach(function (f) {
+      var current = Number(inputs[f]);
+      var lo = FEATURE_MIN[f];
+      var hi = FEATURE_MAX[f];
+      var remaining = hi - current;
+
+      if (remaining <= 0) return; // already at max
+
+      // Determine step size for rounding
+      var step = f === "study_hours" ? 0.5 : 5;
+      var target = current + remaining * 0.25;
+      // Round up to nearest step
+      target = lo + Math.ceil((target - lo) / step) * step;
+      target = clamp(target, lo, hi);
+      target = round2(target);
+
+      if (target <= current) return; // no meaningful improvement
+
+      var scenario = {};
+      FEATURES.forEach(function (ff) {
+        scenario[ff] = Number(inputs[ff]);
       });
+      scenario[f] = target;
+
+      var predicted = round2(clamp(predictFromModel(scenario), 0, 100));
+      var improvement = round2(predicted - currentMark);
+
+      if (improvement > 0) {
+        out.push({
+          feature: f,
+          label: FEATURE_LABELS[f],
+          from: current,
+          to: target,
+          unit: FEATURE_UNITS[f],
+          predicted: predicted,
+          improvement: improvement
+        });
+      }
     });
+
     out.sort(function (a, b) {
       return b.improvement - a.improvement;
     });
     return out;
-  }  /* ---------- rendering ---------- */
+  }
+
+  /* ---------- rendering ---------- */
   function renderHero() {
     el("predicted-marks").textContent = round1(currentMark);
     el("predicted-grade").textContent = "Grade " + currentGrade;
@@ -173,15 +198,22 @@
   function renderWhatIf() {
     var scenarios = whatIfScenarios();
     var html = "";
-    html += "<p class=\"whatif-intro\">If you could move one input, the model predicts:</p>";
-    html += "<ul class=\"whatif-list\">";
-    scenarios.forEach(function (s) {
-      html += "<li><strong>" + s.label + ":</strong> " + FEATURE_LABELS[s.feature];
-      html += " &rarr; " + s.newValue + FEATURE_UNITS[s.feature] + ", prediction &asymp; ";
-      html += "<strong>" + s.predicted + "</strong>, an improvement of <strong>+" + s.improvement;
-      html += " points</strong>.</li>";
-    });
-    html += "</ul>";
+
+    if (scenarios.length === 0) {
+      html += "<p class=\"whatif-intro\">You are already at or near the maximum for all inputs.</p>";
+    } else {
+      html += "<p class=\"whatif-intro\">Based on this model, the best improvement comes from increasing your <strong>";
+      html += FEATURE_LABELS[scenarios[0].feature] + "</strong>:</p>";
+      html += "<ul class=\"whatif-list\">";
+      scenarios.forEach(function (s) {
+        html += "<li><strong>" + FEATURE_LABELS[s.feature] + ":</strong> from ";
+        html += s.from + s.unit + " &rarr; " + s.to + s.unit + ", predicted &asymp; ";
+        html += "<strong>" + s.predicted + "</strong>, an improvement of <strong>+" + s.improvement;
+        html += " points</strong></li>";
+      });
+      html += "</ul>";
+    }
+
     html += "<p class=\"whatif-note\">Each scenario is compared to your actual prediction ";
     html += "(" + round1(currentMark) + ") using the loaded model.</p>";
     el("whatif-list").innerHTML = html;

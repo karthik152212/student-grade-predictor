@@ -253,14 +253,63 @@ class GradePredictorTestCase(unittest.TestCase):
         """H: the chart renders only trend + prediction, no training dots."""
         root = pathlib.Path(__file__).resolve().parent.parent
         script = (root / "static" / "script.js").read_text(encoding="utf-8")
-        template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+        result_script = (root / "static" / "result.js").read_text(encoding="utf-8")
+        index_template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+        result_template = (root / "templates" / "result.html").read_text(encoding="utf-8")
 
-        self.assertNotIn("Training data", script)
+        # Homepage script must have NO chart or training data code
         self.assertNotIn("train-data", script)
-        self.assertNotIn('<script id="train-data"', template)
-        self.assertIn("showLine: true", script)
-        self.assertIn("Your prediction", script)
-        self.assertIn("Model trend (current inputs)", script)
+        self.assertNotIn("new Chart", script)
+        self.assertNotIn('getElementById("model-data")', script)
+        self.assertNotIn('getElementById("trend-chart")', script)
+
+        # Homepage template must have NO training data
+        self.assertNotIn('id="train-data"', index_template)
+        self.assertNotIn("train-data", index_template)
+
+        # Result script should have trend + prediction, no training scatter
+        self.assertNotIn("train-data", result_script)
+        self.assertIn("showLine: true", result_script)
+        self.assertIn("Your prediction", result_script)
+        self.assertIn("Model trend (current inputs)", result_script)
+
+        # Result template should have chart canvas
+        self.assertIn("trend-chart", result_template)
+
+    def test_homepage_script_has_no_result_page_references(self):
+        """Homepage script.js must not reference result-page DOM elements."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        script = (root / "static" / "script.js").read_text(encoding="utf-8")
+
+        # Must not reference result-page elements
+        result_ids = [
+            "model-data",
+            "trend-chart",
+            "result-placeholder",
+            "result-content",
+            "predicted-marks",
+            "grade-badge",
+            "grade-message",
+            "contribution-list",
+            "whatif-list",
+            "model-flow",
+        ]
+        for rid in result_ids:
+            self.assertNotIn(f'getElementById("{rid}")', script,
+                             f"script.js must not reference #{rid}")
+
+        # Must not instantiate Chart.js
+        self.assertNotIn("new Chart", script)
+        # Must not reference model-data or chart canvas
+        self.assertNotIn("getElementById(\"model-data\")", script)
+        self.assertNotIn("getElementById(\"trend-chart\")", script)
+
+    def test_result_script_reads_session_state_correctly(self):
+        """Result script reads from state.prediction.predicted_marks (nested)."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        result_script = (root / "static" / "result.js").read_text(encoding="utf-8")
+        self.assertIn("state.prediction.predicted_marks", result_script)
+        self.assertIn("state.prediction.grade", result_script)
 
     def test_footer_deployment_statement(self):
         html = self.client.get("/").get_data(as_text=True)

@@ -14,7 +14,7 @@
 </head>
 <body>
   <header class="site-header results-header">
-    <a href="/" class="back-link" aria-label="Back to inputs">← Back</a>
+    <a href="/" class="back-link" aria-label="Back to inputs">&larr; Back</a>
     <h1>YOUR PREDICTION</h1>
   </header>
 
@@ -86,6 +86,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script id="model-data" type="application/json">{{ model_json | safe }}</script>
-  <script src="{{ url_for('static', filename='result.js') }}"></script>
+  <script src="{{ url_for('static', filename='result.js') }}?v=4"></script>
 </body>
 </html>

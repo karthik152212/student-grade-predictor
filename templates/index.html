@@ -20,8 +20,7 @@
     </p>
   </header>
 
-    <main class="home-layout">
-    <!-- Input panel -->
+  <main class="home-layout">
     <section class="card input-panel" aria-labelledby="inputs-title">
       <h2 id="inputs-title" class="panel-title">Your Inputs</h2>
 
@@ -103,7 +102,7 @@
         />
       </div>
 
-            <p id="predict-error" class="error-message" role="alert" hidden></p>
+      <p id="predict-error" class="error-message" role="alert" hidden></p>
       <button id="predict-btn" type="button" class="predict-btn">Predict</button>
     </section>
   </main>
@@ -112,6 +111,6 @@
     Built with Flask + scikit-learn, deployed on PythonAnywhere
   </footer>
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=4"></script>
 </body>
 </html>
