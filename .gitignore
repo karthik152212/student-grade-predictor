@@ -15,5 +15,15 @@ Thumbs.db
 # Logs
 *.log
 
+# Local verification scaffolding (headless Chrome + Node browser checks)
+_browser_check*.*
+_run_check.cjs
+run_browser_check.bat
+*.txt
+chrome.out
+chrome.err
+chrome-profile/
+
+
 # Note: model/model.pkl IS intentionally committed so a fresh clone can
 # run and deploy the app without retraining (decided per AGENT_LOOP_PROMPT.md Phase 1).

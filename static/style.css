@@ -109,15 +109,37 @@ body {
   font-size: 0.95rem;
 }
 
-.slider-head output {
+.slider-head .value-input {
+  font-family: inherit;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   background: var(--accent-soft);
+  border: 1px solid transparent;
   border-radius: 6px;
   padding: 2px 10px;
   min-width: 56px;
+  max-width: 96px;
   text-align: center;
+  font-size: 0.95rem;
+}
+
+.slider-head .value-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+  background: #ffffff;
+}
+
+/* Keep the badge look: hide the native number-input spinners. */
+.slider-head .value-input::-webkit-outer-spin-button,
+.slider-head .value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.slider-head .value-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Styled range input (cross-browser) */

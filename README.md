@@ -11,8 +11,8 @@ and deployed on **PythonAnywhere**.
   instant value display.
 - One-click **Predict** → predicted marks (animated number) + colored
   grade badge (A/B green, C amber, D/F red) + context message.
-- **Chart.js** scatter of training data with the model regression trend
-  line and the current prediction as a highlighted point.
+- **Chart.js** model regression trend line with the current prediction as
+  a highlighted point (no raw training data shown).
 - Responsive card UI (two columns on desktop, single column on mobile).
 - Strict server-side validation (non-numeric or out-of-range input →
   HTTP 400 with a clear message; never 500).

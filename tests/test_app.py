@@ -114,11 +114,107 @@ class GradePredictorTestCase(unittest.TestCase):
         for key, dom_id in pairs:
             self.assertIn(f'id="{dom_id}"', template, f"missing slider id {dom_id}")
             self.assertIn(
-                f'id="{dom_id}-val"', template, f"missing readout output {dom_id}-val"
+                f'id="{dom_id}-val"', template, f"missing readout input {dom_id}-val"
             )
             self.assertIn(
                 f'for="{dom_id}"', template, f"missing label/output for {dom_id}"
             )
+
+    def _input_attrs(self, template, input_id):
+        m = re.search(
+            r'<input\s[^>]*\bid="' + re.escape(input_id) + r'"[^>]*>',
+            template,
+        )
+        self.assertIsNotNone(m, f"input #{input_id} not found in template")
+        block = m.group(0)
+
+        def attr(name):
+            mm = re.search(name + r'="([^"]*)"', block)
+            return mm.group(1) if mm else None
+
+        return attr
+
+    def test_slider_and_input_configuration(self):
+        """A/C/D/E: sliders + numeric inputs expose the requested ranges."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+
+        expected_sliders = {
+            "study-hours": {"min": "0", "max": "12", "step": "0.1", "value": "6"},
+            "attendance-rate": {"min": "0", "max": "100", "step": "1", "value": "80"},
+            "previous-score": {"min": "0", "max": "100", "step": "1", "value": "70"},
+        }
+        for slider_id, attrs in expected_sliders.items():
+            a = self._input_attrs(template, slider_id)
+            self.assertEqual(a("type"), "range", slider_id)
+            for name, val in attrs.items():
+                self.assertEqual(a(name), val, f"{slider_id} {name}")
+
+        expected_inputs = {
+            "study-hours-val": ("number", "0", "12", "0.1", "6.0"),
+            "attendance-rate-val": ("number", "0", "100", "1", "80"),
+            "previous-score-val": ("number", "0", "100", "1", "70"),
+        }
+        for input_id, (typ, mn, mx, step, value) in expected_inputs.items():
+            a = self._input_attrs(template, input_id)
+            self.assertEqual(a("type"), typ, input_id)
+            self.assertEqual(a("min"), mn, input_id)
+            self.assertEqual(a("max"), mx, input_id)
+            self.assertEqual(a("step"), step, input_id)
+            self.assertEqual(a("value"), value, input_id)
+            self.assertTrue(a("aria-label"), f"missing aria-label on {input_id}")
+
+    def test_study_hours_decimal_payload(self):
+        """B: the API accepts decimal study_hours such as 7.4."""
+        r = self.post(
+            {"study_hours": 7.4, "attendance_rate": 80, "previous_score": 70}
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(0 <= r.get_json()["predicted_marks"] <= 100)
+
+    def test_reference_prediction_case(self):
+        """study 8 / attendance 90 / previous 85 -> ~81.1 marks, grade B."""
+        r = self.post({"study_hours": 8, "attendance_rate": 90, "previous_score": 85})
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertAlmostEqual(body["predicted_marks"], 81.1, delta=1.0)
+        self.assertEqual(body["grade"], "B")
+
+    def test_api_contract_keys_unchanged(self):
+        """F: the backend contract remains exactly the three API keys."""
+        self.assertEqual(
+            list(app_module.BOUNDS.keys()),
+            ["study_hours", "attendance_rate", "previous_score"],
+        )
+        self.assertEqual(
+            app_module.FEATURES, ["study_hours", "attendance_rate", "previous_score"]
+        )
+
+    def test_no_stale_underscore_dom_ids(self):
+        """G: script.js must not look up DOM elements by underscore API keys."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        script = (root / "static" / "script.js").read_text(encoding="utf-8")
+        template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+
+        for key in ("study_hours", "attendance_rate", "previous_score"):
+            self.assertNotIn(f'getElementById("{key}")', script)
+        for dom_id in ("study-hours", "attendance-rate", "previous-score"):
+            self.assertIn(f'id: "{dom_id}"', script, "SLIDERS config id")
+            self.assertIn(f'getElementById(s.id + "-val")', script, "readout wiring")
+            self.assertIn(f'id="{dom_id}-val"', template)
+
+    def test_chart_has_no_training_scatter(self):
+        """H: the chart renders only trend + prediction, no training dots."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        script = (root / "static" / "script.js").read_text(encoding="utf-8")
+        template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+
+        self.assertNotIn("Training data", script)
+        self.assertNotIn("train-data", script)
+        self.assertNotIn('<script id="train-data"', template)
+        self.assertIn("showLine: true", script)
+        self.assertIn("Your prediction", script)
+        self.assertIn("Model trend (current inputs)", script)
 
     def test_footer_deployment_statement(self):
         html = self.client.get("/").get_data(as_text=True)

@@ -23,7 +23,7 @@
 
   var el = {
     sliders: {},
-    outputs: {},
+    inputs: {},
     predictBtn: document.getElementById("predict-btn"),
     placeholder: document.getElementById("result-placeholder"),
     resultContent: document.getElementById("result-content"),
@@ -36,15 +36,12 @@
 
   SLIDERS.forEach(function (s) {
     el.sliders[s.key] = document.getElementById(s.id);
-    el.outputs[s.key] = document.getElementById(s.id + "-val");
+    el.inputs[s.key] = document.getElementById(s.id + "-val");
   });
 
-  // Model info + training data injected by the server.
+  // Model info injected by the server (coefficients/intercept).
   var modelInfo = JSON.parse(
     document.getElementById("model-data").textContent
-  );
-  var trainingPoints = JSON.parse(
-    document.getElementById("train-data").textContent
   );
 
   // Model coefficients indexed by feature name (order-safe).
@@ -78,6 +75,37 @@
     return Number(value).toFixed(sliderConfig(key).decimals);
   }
 
+  function roundTo(value, decimals) {
+    var f = Math.pow(10, decimals);
+    return Math.round(value * f) / f;
+  }
+
+  // Commit a value typed into a numeric input back onto its slider.
+  // Clamps to min/max, snaps to the slider step, normalizes the display,
+  // and repaints fill + trend. Invalid/empty input restores the last
+  // valid value so the app can never break from a bad keystroke.
+  function commitValue(key) {
+    var slider = el.sliders[key];
+    var input = el.inputs[key];
+    var cfg = sliderConfig(key);
+    var num = Number(input.value);
+    if (input.value === "" || !isFinite(num)) {
+      input.value = formatValue(key, Number(slider.value));
+      return;
+    }
+    var lo = Number(slider.min);
+    var hi = Number(slider.max);
+    var step = Number(slider.step);
+    var snapped = lo + Math.round((num - lo) / step) * step;
+    snapped = Math.min(hi, Math.max(lo, snapped));
+    snapped = roundTo(snapped, cfg.decimals);
+
+    slider.value = snapped;
+    input.value = formatValue(key, snapped);
+    paintSlider(slider);
+    refreshTrend();
+  }
+
   function readInputs() {
     var out = {};
     SLIDERS.forEach(function (s) {
@@ -95,7 +123,7 @@
 
   function updateReadouts() {
     SLIDERS.forEach(function (s) {
-      el.outputs[s.key].textContent = formatValue(s.key, el.sliders[s.key].value);
+      el.inputs[s.key].value = formatValue(s.key, el.sliders[s.key].value);
       paintSlider(el.sliders[s.key]);
     });
   }
@@ -127,15 +155,6 @@
       type: "scatter",
       data: {
         datasets: [
-          {
-            label: "Training data",
-            data: trainingPoints.map(function (p) {
-              return { x: p[0], y: p[1] };
-            }),
-            backgroundColor: "rgba(100, 116, 139, 0.35)",
-            pointRadius: 2,
-            pointHoverRadius: 5
-          },
           {
             label: "Model trend (current inputs)",
             data: trendPoints(),
@@ -187,14 +206,14 @@
 
   function refreshTrend() {
     if (!chart) return;
-    chart.data.datasets[1].data = trendPoints();
+    chart.data.datasets[0].data = trendPoints();
     chart.update("none");
   }
 
   function setPredictionPoint(pred) {
     if (!chart) return;
     var inputs = readInputs();
-    chart.data.datasets[2].data = [
+    chart.data.datasets[1].data = [
       { x: inputs.previous_score, y: pred }
     ];
     chart.update();
@@ -285,6 +304,18 @@
     el.sliders[s.key].addEventListener("input", function () {
       updateReadouts(); // live number only — no API call
       refreshTrend();   // cheap client-side trend redraw
+    });
+
+    // Keyboard editing: commit on Enter and on blur/change (spinner too).
+    el.inputs[s.key].addEventListener("change", function () {
+      commitValue(s.key);
+    });
+    el.inputs[s.key].addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitValue(s.key);
+        this.blur();
+      }
     });
   });
 

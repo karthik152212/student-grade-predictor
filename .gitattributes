@@ -1,0 +1,5 @@
+# Normalize text files to LF line endings everywhere (cross-platform clean diffs).
+# Binary artifacts are explicitly held out so their bytes never change here.
+* text=auto eol=lf
+*.pkl binary
+*.csv binary
