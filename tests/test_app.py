@@ -94,8 +94,54 @@ class GradePredictorTestCase(unittest.TestCase):
     def test_homepage_serves_ui(self):
         r = self.client.get("/")
         self.assertEqual(r.status_code, 200)
-        for marker in ('id="study-hours"', "predict-btn", "trend-chart"):
-            self.assertIn(marker, r.get_data(as_text=True))
+        html = r.get_data(as_text=True)
+        # Phase 2 homepage: minimal input page, no prediction/chart
+        self.assertIn("AI Student Grade Predictor", html)
+        self.assertIn("study-hours", html)
+        self.assertIn("attendance-rate", html)
+        self.assertIn("previous-score", html)
+        self.assertIn("study-hours-val", html)
+        self.assertIn("attendance-rate-val", html)
+        self.assertIn("previous-score-val", html)
+        self.assertIn("predict-btn", html)
+        self.assertIn("home-layout", html)
+        # Old Phase 1 elements must NOT be on the Phase 2 homepage
+        self.assertNotIn("trend-chart", html)
+        self.assertNotIn("predicted-marks", html)
+        self.assertNotIn("grade-badge", html)
+        self.assertNotIn("predicted-grade", html)
+        self.assertNotIn("result-content", html)
+        self.assertNotIn("model-data", html)
+        self.assertNotIn("model-flow", html)
+        self.assertNotIn("contribution-list", html)
+        self.assertNotIn("whatif-list", html)
+        self.assertNotIn("chart-section", html)
+        self.assertNotIn("chart-wrap", html)
+        self.assertNotIn("train-data", html)
+        self.assertNotIn("Training data", html)
+
+    def test_result_page_serves_ui(self):
+        """Result page contains all expected sections including trend chart."""
+        r = self.client.get("/result")
+        self.assertEqual(r.status_code, 200)
+        html = r.get_data(as_text=True)
+        # Prediction / result section
+        self.assertIn("YOUR PREDICTION", html)
+        self.assertIn("predicted-marks", html)
+        # Grade section
+        self.assertIn("grade-badge", html)
+        # Model-derived contribution section
+        self.assertIn("contribution-list", html)
+        # Personalized what-if section
+        self.assertIn("whatif-list", html)
+        # Model explanation section
+        self.assertIn("model-flow", html)
+        # Trend chart + current prediction point live on the result page
+        self.assertIn("trend-chart", html)
+        # Model metadata injected by the server for derivation
+        self.assertIn("model-data", html)
+        # Input summary echo
+        self.assertIn("Study Hours", html)
 
     # ---- frontend contract tests ----
     def test_frontend_slider_mapping_matches_template(self):

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Prediction — AI Student Grade Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="site-header results-header">
+    <a href="/" class="back-link" aria-label="Back to inputs">← Back</a>
+    <h1>YOUR PREDICTION</h1>
+  </header>
+
+  <main class="result-layout">
+    <!-- Hero: the server prediction (headline) -->
+    <section class="card prediction-hero" aria-labelledby="prediction-title">
+      <h2 id="prediction-title" class="visually-hidden">Prediction</h2>
+      <div class="marks">
+        <span id="predicted-marks">--</span>
+        <span class="marks-unit">/ 100</span>
+      </div>
+      <span id="grade-badge" class="grade-badge">--</span>
+      <p id="predicted-grade" class="grade-subtext"></p>
+    </section>
+
+    <!-- Inputs echoed back -->
+    <section class="card input-summary" aria-labelledby="summary-title">
+      <h2 id="summary-title">Inputs Used</h2>
+      <dl class="summary-grid">
+        <div class="summary-item"><dt>Study Hours</dt><dd id="sum-study">--</dd></div>
+        <div class="summary-item"><dt>Attendance</dt><dd id="sum-attendance">--</dd></div>
+        <div class="summary-item"><dt>Previous Score</dt><dd id="sum-previous">--</dd></div>
+      </dl>
+    </section>
+
+    <!-- Why: model-derived contribution breakdown -->
+    <section class="card" aria-labelledby="why-title">
+      <h2 id="why-title">Why this prediction?</h2>
+      <div id="contribution-list"></div>
+    </section>
+
+    <!-- Improve: model-derived what-if scenarios -->
+    <section class="card" aria-labelledby="improve-title">
+      <h2 id="improve-title">How can I improve?</h2>
+      <div id="whatif-list"></div>
+      <p class="disclaimer">
+        These are model-based what-if estimates. They show how the prediction
+        changes if one input changes while the others stay constant; they do not
+        prove that changing that factor will cause the real-world result.
+      </p>
+    </section>
+
+    <!-- Visualization -->
+    <section class="card chart-section" aria-labelledby="chart-title">
+      <h2 id="chart-title">Model visualization</h2>
+      <p class="chart-note">
+        Trend of predicted marks vs previous score, with study hours and
+        attendance held at your inputs.
+      </p>
+      <div class="chart-wrap">
+        <canvas
+          id="trend-chart"
+          role="img"
+          aria-label="Model trend: predicted marks vs previous score with study hours and attendance held constant, with your prediction point"
+        ></canvas>
+      </div>
+    </section>
+
+    <!-- Education -->
+    <section class="card" aria-labelledby="how-title">
+      <h2 id="how-title">How did the model predict this?</h2>
+      <div id="model-flow"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Built with Flask + scikit-learn, deployed on PythonAnywhere
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script id="model-data" type="application/json">{{ model_json | safe }}</script>
+  <script src="{{ url_for('static', filename='result.js') }}"></script>
+</body>
+</html>

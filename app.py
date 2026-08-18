@@ -1,7 +1,9 @@
 """
 Student Grade Predictor — Flask backend.
 
-- GET  /              serves templates/index.html
+- GET  /              minimal input page (templates/index.html)
+- GET  /result        results page (templates/result.html); model coefficients
+                       are injected server-side for model-derived explanations
 - POST /api/predict   predicts final marks + grade from study_hours,
                       attendance_rate, previous_score (validated server-side)
 - GET  /api/health    deployment health check -> {"status": "ok"}
@@ -14,7 +16,6 @@ import math
 
 import joblib
 import numpy as np
-import pandas as pd
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
@@ -75,36 +76,38 @@ def _validate(payload) -> dict:
     return values
 
 
+def _model_info():
+    """JSON-safe dict of the trained model's coefficients/intercept/features.
+
+    Injected server-side into the results page so the explanations and what-if
+    analysis are derived from the actual model — coefficients are never
+    hard-coded in the frontend, keeping the model the single source of truth."""
+    if model is None:
+        return None
+    return {
+        "features": FEATURES,
+        "coefficients": [float(c) for c in model.coef_],
+        "intercept": float(model.intercept_),
+    }
+
+
 @app.get("/")
 def index():
-    # Model info (coefficients/intercept) + a sample of training data are
-    # injected server-side so the chart can draw the regression trend line
-    # and the training scatter without extra API calls.
-    model_json = None
-    if model is not None:
-        model_json = json.dumps(
-            {
-                "features": FEATURES,
-                "coefficients": [float(c) for c in model.coef_],
-                "intercept": float(model.intercept_),
-            }
-        )
+    # Minimal input page: collects the three inputs and a Predict button.
+    # No prediction, chart, or model details are served on the homepage.
+    return render_template("index.html")
 
-    data_json = "[]"
-    try:
-        df = pd.read_csv("model/dataset.csv")
-        sample = df.sample(n=min(150, len(df)), random_state=1)
-        points = [
-            [float(row.previous_score), float(row.final_marks)]
-            for row in sample.itertuples()
-        ]
-        data_json = json.dumps(points)
-    except Exception as exc:  # pragma: no cover - dataset missing
-        print(f"WARNING: could not load dataset for chart: {exc}")
 
-    return render_template(
-        "index.html", model_json=model_json, data_json=data_json
-    )
+@app.get("/result")
+def result():
+    # Results page. Model coefficients are injected server-side using the same
+    # mechanism as before, so the page can compute contributions and what-if
+    # scenarios from the actual trained model without a new API endpoint.
+        info = _model_info()
+        # Always pass a JSON string ("null" when the model is unavailable) so the
+        # page can `JSON.parse` it unconditionally without template errors.
+        model_json = json.dumps(info) if info is not None else "null"
+        return render_template("result.html", model_json=model_json)
 
 
 @app.get("/api/health")
