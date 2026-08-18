@@ -1,0 +1,12 @@
+{
+  "r2": 0.9627,
+  "mae": 2.8177,
+  "train_samples": 400,
+  "test_samples": 100,
+  "features": [
+    "study_hours",
+    "attendance_rate",
+    "previous_score"
+  ],
+  "model": "LinearRegression"
+}
