@@ -1,0 +1,18 @@
+# Render Blueprint for the Student Grade Predictor
+# Docs: https://render.com/docs/blueprint-spec
+#
+# - Installs pinned dependencies from requirements.txt
+# - Starts Flask through Gunicorn (app:app)
+# - Binds to the PORT Render provides
+# - Uses the committed model/model.pkl (no retraining during deploy)
+# - No SSH, Nginx, systemd, or EC2 required
+
+services:
+  - type: web
+    name: student-grade-predictor
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT"
+    healthCheckPath: /api/health
+    autoDeploy: true
