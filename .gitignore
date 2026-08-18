@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Note: model/model.pkl IS intentionally committed so a fresh clone can
+# run and deploy the app without retraining (decided per AGENT_LOOP_PROMPT.md Phase 1).
