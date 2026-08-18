@@ -3,7 +3,7 @@
 A full-stack web app that predicts a student's **final marks** from
 **study hours**, **attendance rate**, and **previous score**, using a
 scikit-learn **Linear Regression** model served via **Flask + Gunicorn**
-and deployed on **Render**.
+and deployed on **PythonAnywhere**.
 
 ## Features
 
@@ -21,14 +21,14 @@ and deployed on **Render**.
 ## Architecture
 
 ```
-GitHub ──► Render ──► Gunicorn ──► Flask ──► Linear Regression (model.pkl)
+GitHub ──► PythonAnywhere ──► Gunicorn ──► Flask ──► Linear Regression (model.pkl)
 ```
 
 - **ML:** Python, scikit-learn, pandas, numpy, joblib
 - **Backend:** Flask
 - **Frontend:** HTML, CSS, vanilla JavaScript, Chart.js (CDN)
 - **Production server:** Gunicorn (WSGI)
-- **Hosting:** Render (Linux runtime, HTTPS, public URL)
+- **Hosting:** PythonAnywhere (Linux runtime, HTTPS, public URL)
 - **Source control:** GitHub
 
 ## Environments
@@ -37,12 +37,12 @@ GitHub ──► Render ──► Gunicorn ──► Flask ──► Linear Regr
 | ----------- | ----------- |
 | **Local development (Windows)** | `python app.py` — Flask dev server |
 | **Production Linux (any host)** | `gunicorn app:app --bind 0.0.0.0:$PORT` |
-| **Render (official)** | Gunicorn via `render.yaml` Blueprint |
+| **PythonAnywhere (official, live)** | https://studentgradepredictor.pythonanywhere.com |
 
 > Gunicorn is **Unix-only** and does not run on native Windows (it needs
 > the POSIX `fcntl` module). Local Windows development therefore uses the
-> Flask dev server; production runs on Render's Linux runtime where
-> Gunicorn is validated.
+> Flask dev server; production runs on PythonAnywhere's Linux runtime
+> where Gunicorn is validated.
 
 ## Model Performance
 
@@ -76,7 +76,7 @@ loaded by Flask at startup — never per request.
 student-grade-predictor/
 ├── app.py                     # Flask entrypoint (app:app)
 ├── requirements.txt           # pinned deps (incl. gunicorn)
-├── render.yaml                # Render Blueprint (official deployment)
+├── render.yaml                # optional Render Blueprint (not the active deployment)
 ├── DECISIONS.md               # architecture/decision changelog
 ├── model/
 │   ├── generate_data.py
@@ -134,31 +134,45 @@ out-of-range, malformed JSON → 400).
 1. Clone: `git clone https://github.com/<owner>/student-grade-predictor.git`
 2. Branch: `git checkout -b my-change`
 3. Commit logically; push: `git push -u origin my-change`
-4. Open a pull request. Merging to the default branch triggers a Render
-   auto-deploy (`autoDeploy: true` in `render.yaml`).
+4. Open a pull request. After merging, pull the updated branch into the
+   PythonAnywhere app (see the deployment section) and reload the web app.
 
-## Render Deployment (official)
+## Deployment (official — PythonAnywhere)
 
-**Automated (Blueprint):** push this repo to GitHub, then in Render choose
-**New → Blueprint** and select the repo. `render.yaml` configures a free
-web service automatically:
-- Build: `pip install -r requirements.txt`
-- Start: `gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT`
-- Health check: `/api/health`
-- Uses the committed `model/model.pkl` — no retraining during deploy.
+The live deployment is at **https://studentgradepredictor.pythonanywhere.com**.
 
-**Manual (equivalent):** New Web Service → repo → Runtime *Python*,
-set Build `pip install -r requirements.txt`, Start
-`gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT`, and add a health
-check path `/api/health`. Render assigns a public **HTTPS** URL and
-manages restart and the `PORT` variable — no SSH, Nginx, systemd, or EC2
-needed.
+Steps used to deploy (reproducible):
 
-Verify the public URL:
+1. **Push the repo** to GitHub (`origin/main`).
+2. On PythonAnywhere, open a **Bash** console, clone the repo, create a
+   virtualenv, and install the pinned dependencies:
+   ```bash
+   git clone https://github.com/karthik152212/student-grade-predictor.git
+   cd student-grade-predictor
+   python3 -m venv venv
+   venv/bin/pip install -r requirements.txt
+   ```
+3. Create a **Web app** (manual configuration, Python 3.13) and point its
+   **Virtualenv** at `.../student-grade-predictor/venv`.
+4. Edit the WSGI configuration so it imports the Flask app:
+   ```python
+   import sys
+   sys.path.insert(0, '/home/<your-user>/student-grade-predictor')
+   from app import app as application
+   ```
+5. **Reload** the web app, then verify:
+   ```bash
+   curl https://studentgradepredictor.pythonanywhere.com/api/health   # -> {"status":"ok"}
+   ```
 
-```bash
-curl https://<your-service>.onrender.com/api/health   # -> {"status":"ok"}
-```
+Verified production environment (PythonAnywhere): Flask 3.1.0, NumPy
+2.1.3, Pandas 2.2.3, scikit-learn 1.6.0, joblib 1.4.2. The committed
+`model/model.pkl` is used directly — no retraining during deployment.
+
+> **Optional alternative:** `render.yaml` remains in the repo as an
+> optional Render Blueprint (`pip install -r requirements.txt` build,
+> `gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT` start, health check
+> `/api/health`). It is **not** the active deployment.
 
 ## API
 
@@ -202,6 +216,8 @@ out-of-range values return **HTTP 400** with a clear error message.
 
 ## Decisions / Changelog
 
-See `DECISIONS.md`. Notable: the deployment target was changed from the
-originally specified **AWS EC2 (Nginx + systemd)** to **Render**; the
-EC2-specific files were removed and `render.yaml` added.
+See `DECISIONS.md`. Notable: the deployment target moved from the
+originally specified **AWS EC2 (Nginx + systemd)** to **Render**, and the
+live deployment is now **PythonAnywhere**
+(https://studentgradepredictor.pythonanywhere.com). The EC2-specific
+files were removed and `render.yaml` remains as an optional alternative.

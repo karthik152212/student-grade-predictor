@@ -7,6 +7,8 @@ extra dependencies are required. Run from the project root:
     python -m unittest discover -s tests -v
 """
 
+import pathlib
+import re
 import unittest
 
 import app as app_module
@@ -94,6 +96,35 @@ class GradePredictorTestCase(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         for marker in ('id="study-hours"', "predict-btn", "trend-chart"):
             self.assertIn(marker, r.get_data(as_text=True))
+
+    # ---- frontend contract tests ----
+    def test_frontend_slider_mapping_matches_template(self):
+        """Every slider config entry in script.js must resolve to real DOM ids."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        template = (root / "templates" / "index.html").read_text(encoding="utf-8")
+        script = (root / "static" / "script.js").read_text(encoding="utf-8")
+
+        pairs = re.findall(r'key:\s*"([^"]+)"\s*,\s*id:\s*"([^"]+)"', script)
+        self.assertTrue(pairs, "expected SLIDERS config entries in script.js")
+        self.assertEqual(
+            {key for key, _ in pairs},
+            {"study_hours", "attendance_rate", "previous_score"},
+            "slider API keys must match the backend API contract",
+        )
+        for key, dom_id in pairs:
+            self.assertIn(f'id="{dom_id}"', template, f"missing slider id {dom_id}")
+            self.assertIn(
+                f'id="{dom_id}-val"', template, f"missing readout output {dom_id}-val"
+            )
+            self.assertIn(
+                f'for="{dom_id}"', template, f"missing label/output for {dom_id}"
+            )
+
+    def test_footer_deployment_statement(self):
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertIn("Built with Flask + scikit-learn", html)
+        self.assertIn("PythonAnywhere", html)
+        self.assertNotIn("AWS EC2", html)
 
 
 if __name__ == "__main__":

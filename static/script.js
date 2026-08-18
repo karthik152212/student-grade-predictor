@@ -5,13 +5,21 @@
 (function () {
   "use strict";
 
-  var FEATURES = ["study_hours", "attendance_rate", "previous_score"];
+  // Explicit mapping between the backend API keys (underscores) and the
+  // DOM ids used by the template (hyphens). Kept in one place so the
+  // frontend never has to guess how an API key maps to an element id.
+  var SLIDERS = [
+    { key: "study_hours", id: "study-hours", decimals: 1 },
+    { key: "attendance_rate", id: "attendance-rate", decimals: 0 },
+    { key: "previous_score", id: "previous-score", decimals: 0 }
+  ];
 
-  var sliderConfig = {
-    study_hours: { decimals: 1 },
-    attendance_rate: { decimals: 0 },
-    previous_score: { decimals: 0 }
-  };
+  function sliderConfig(key) {
+    for (var i = 0; i < SLIDERS.length; i++) {
+      if (SLIDERS[i].key === key) return SLIDERS[i];
+    }
+    return null; // only reachable if config is inconsistent; tests guard this
+  }
 
   var el = {
     sliders: {},
@@ -26,9 +34,9 @@
     canvas: document.getElementById("trend-chart")
   };
 
-  FEATURES.forEach(function (f) {
-    el.sliders[f] = document.getElementById(f);
-    el.outputs[f] = document.getElementById(f + "-val");
+  SLIDERS.forEach(function (s) {
+    el.sliders[s.key] = document.getElementById(s.id);
+    el.outputs[s.key] = document.getElementById(s.id + "-val");
   });
 
   // Model info + training data injected by the server.
@@ -38,6 +46,14 @@
   var trainingPoints = JSON.parse(
     document.getElementById("train-data").textContent
   );
+
+  // Model coefficients indexed by feature name (order-safe).
+  var coefByFeature = {};
+  if (modelInfo) {
+    for (var i = 0; i < modelInfo.features.length; i++) {
+      coefByFeature[modelInfo.features[i]] = modelInfo.coefficients[i];
+    }
+  }
 
   var GRADES = [
     { threshold: 90, grade: "A", message: "Excellent — top of the class!" },
@@ -58,14 +74,14 @@
 
   /* ---------- slider helpers ---------- */
 
-  function formatValue(feature, value) {
-    return Number(value).toFixed(sliderConfig[feature].decimals);
+  function formatValue(key, value) {
+    return Number(value).toFixed(sliderConfig(key).decimals);
   }
 
   function readInputs() {
     var out = {};
-    FEATURES.forEach(function (f) {
-      out[f] = Number(el.sliders[f].value);
+    SLIDERS.forEach(function (s) {
+      out[s.key] = Number(el.sliders[s.key].value);
     });
     return out;
   }
@@ -78,9 +94,9 @@
   }
 
   function updateReadouts() {
-    FEATURES.forEach(function (f) {
-      el.outputs[f].textContent = formatValue(f, el.sliders[f].value);
-      paintSlider(el.sliders[f]);
+    SLIDERS.forEach(function (s) {
+      el.outputs[s.key].textContent = formatValue(s.key, el.sliders[s.key].value);
+      paintSlider(el.sliders[s.key]);
     });
   }
 
@@ -93,9 +109,9 @@
     for (var prev = 0; prev <= 100; prev += 5) {
       var y =
         modelInfo.intercept +
-        modelInfo.coefficients[0] * inputs.study_hours +
-        modelInfo.coefficients[1] * inputs.attendance_rate +
-        modelInfo.coefficients[2] * prev;
+        coefByFeature.study_hours * inputs.study_hours +
+        coefByFeature.attendance_rate * inputs.attendance_rate +
+        coefByFeature.previous_score * prev;
       pts.push({ x: prev, y: Math.max(0, Math.min(100, y)) });
     }
     return pts;
@@ -227,11 +243,11 @@
 
   function currentPayload() {
     var inputs = readInputs();
-    return JSON.stringify({
-      study_hours: inputs.study_hours,
-      attendance_rate: inputs.attendance_rate,
-      previous_score: inputs.previous_score
+    var payload = {};
+    SLIDERS.forEach(function (s) {
+      payload[s.key] = inputs[s.key];
     });
+    return JSON.stringify(payload);
   }
 
   function predict() {
@@ -265,8 +281,8 @@
 
   /* ---------- wire up events ---------- */
 
-  FEATURES.forEach(function (f) {
-    el.sliders[f].addEventListener("input", function () {
+  SLIDERS.forEach(function (s) {
+    el.sliders[s.key].addEventListener("input", function () {
       updateReadouts(); // live number only — no API call
       refreshTrend();   // cheap client-side trend redraw
     });

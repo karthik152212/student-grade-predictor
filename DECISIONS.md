@@ -25,10 +25,30 @@ so the repository never silently contradicts its documentation.
     `fcntl` error on Windows is an environment limitation, not a code
     issue, and is validated in Render's Linux runtime).
 
+## 2026-08-18 — Deployment target changed: Render → PythonAnywhere
+
+- **Decision:** The live/official production deployment is now
+  **PythonAnywhere**: https://studentgradepredictor.pythonanywhere.com
+- **Why:** The project was deployed on PythonAnywhere's Linux web
+  hosting, which serves the app through Gunicorn and provides HTTPS and a
+  public URL without EC2/Nginx/systemd. The earlier Render decision was
+  superseded in practice by this deployment.
+- **Impact:**
+  - Final architecture: **GitHub → PythonAnywhere → Gunicorn → Flask →
+    app**.
+  - `render.yaml` remains in the repo as an optional alternative but is
+    **not** the active deployment definition.
+  - README now documents PythonAnywhere as the official deployment
+    target (local Windows dev, generic Linux/Gunicorn, and the
+    PythonAnywhere deployment are still described separately).
+  - Gunicorn remains the production WSGI server and is validated on
+    PythonAnywhere's Linux runtime (the `fcntl` error is a Windows-only
+    limitation).
+
 ## 2026-08-18 — Other recorded decisions
 
 - **`model/model.pkl` is committed to git.** Enables a fresh clone /
-  Render deploy to serve predictions without a training step (explicitly
+  any deployment to serve predictions without a training step (explicitly
   allowed by the build instructions).
 - **Server-side validation rejects out-of-range / non-numeric input with
   HTTP 400** (rather than clamping). Matches the required API contract.
